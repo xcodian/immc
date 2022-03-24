@@ -17,7 +17,7 @@ class Passenger:
     def __init__(self, target: list = None):
         self.target = target or [0, 0]
         self.is_bagging = False
-        self.bagging_remaining = randint(5, 10)
+        self.bagging_remaining = randint(5, 20)
         self.boarding_time = 0
 
         self.sitdown_time = 1 + self.target[1] % 3
@@ -25,13 +25,9 @@ class Passenger:
     def __repr__(self) -> str:
         return f'passenger{self.target} {"bagging" if self.is_bagging else "moving"}'
 
-
-
-
 targets_pool = []
 middle = {}
 seats = {}
-
 
 def prepare(): 
     global targets_pool, middle, seats
@@ -110,13 +106,32 @@ def step():
         middle[row_number+1] = middle[row_number]
         middle[row_number] = None
 
+    # sitty downy
+    globally_subtract_times_of_seated_passengers()
+
 def is_everyone_in():
     for v in middle.values():
         if v:
             return False
 
+    # check if everyone in seats is sitting down
+    for row in seats.values():
+        for p in row.values():
+            if p is None:
+                continue
+            if p.sitdown_time:
+                return False
+    
     return True
 
+def globally_subtract_times_of_seated_passengers():
+    for row in seats.values():
+        for p in row.values():
+            if p is None:
+                continue
+
+            if p.sitdown_time:
+                p.sitdown_time -= 1
 
 average_boarding_times = []
 
@@ -130,14 +145,6 @@ def run():
         if is_everyone_in():
             break
         step()
-        cycle += 1
-
-        if cycle % 100 == 0:
-            not_boarded = len([p for p in middle.values() if p])
-            boarded = passenger_count - not_boarded
-            percentage_boarded = int(boarded / passenger_count * 100)
-
-            # print(f'simulating... (cycle {cycle:,}) -> {percentage_boarded}% done ({not_boarded} not boarded)')
 
     # for row_num, row in seats.items():
     #     print(' '.join([':)' if p else '--' for p in row.values()]))
