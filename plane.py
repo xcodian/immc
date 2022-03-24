@@ -19,7 +19,7 @@ MAX_INDIVIDUAL_BAGGING_TIME = 20
 MIN_INDIVIDUAL_BAGS = 3
 MAX_INDIVIDUAL_BAGS = 4
 
-PERCENTAGE_OF_PASSENGERS_NOT_FOLLOWING_INSTRUCTIONS = 5
+PERCENTAGE_OF_PASSENGERS_NOT_FOLLOWING_INSTRUCTIONS = 20
 
 passenger_count = int(ROW_COUNT * SEATS_PER_ROW * PLANE_FULLNESS_PERCENT * 0.01 * 2)
 
@@ -56,8 +56,6 @@ def prepare():
     middle = {}
     seats = {}
 
-
-
     # ------- random allocation  -------
     # for r in range(ROW_COUNT):
     #     for s in range(SEATS_PER_ROW*2):
@@ -65,9 +63,28 @@ def prepare():
     # shuffle(targets_pool)
 
     # ------- outer seats to inner --------
-    for s in [0, 5,  1, 4,  2, 3]:
-        for r in range(ROW_COUNT):
-            targets_pool.append([r+passenger_count, s])
+    # for s in [0, 5,  1, 4,  2, 3]:
+    #     for r in range(ROW_COUNT):
+    #         targets_pool.append([r+passenger_count, s])
+
+    # ------ grouped in sections, random within section ------
+    groups = [
+        (22, 33),
+        (11, 22),
+        (0, 11)
+    ]
+
+    # by groups
+    for gmin, gmax in groups:
+        group = []
+
+        for r in range(gmin, gmax):
+            for s in list(range(SEATS_PER_ROW*2)):
+                group.append([r+passenger_count, s])
+
+        # get a random seat in the groups
+        shuffle(group)
+        targets_pool.extend(group)
 
     # passengers not following instructions
     swaps = int(len(targets_pool) * (PERCENTAGE_OF_PASSENGERS_NOT_FOLLOWING_INSTRUCTIONS / 100))
