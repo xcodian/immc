@@ -1,5 +1,5 @@
 from datetime import datetime
-from random import randint, shuffle
+from random import randint, shuffle, randrange
 
 import statistics
 
@@ -9,7 +9,15 @@ import matplotlib.pyplot as plt
 PLANE_FULLNESS_PERCENT = 100 # this is very interesting
 ROW_COUNT = 33
 SEATS_PER_ROW = 3
-SIM_COUNT = 100 # reruns the plane simulation n times
+SIM_COUNT = 1000 # reruns the plane simulation n times
+
+MIN_INDIVIDUAL_BAGGING_TIME = 5
+MAX_INDIVIDUAL_BAGGING_TIME = 20
+
+MIN_INDIVIDUAL_BAGS = 1
+MAX_INDIVIDUAL_BAGS = 3
+
+PERCENTAGE_OF_PASSENGERS_NOT_FOLLOWING_INSTRUCTIONS = 5
 
 passenger_count = int(ROW_COUNT * SEATS_PER_ROW * PLANE_FULLNESS_PERCENT * 0.01 * 2)
 
@@ -17,10 +25,14 @@ class Passenger:
     def __init__(self, target: list = None):
         self.target = target or [0, 0]
         self.is_bagging = False
-        self.bagging_remaining = randint(5, 20)
+        self.bagging_remaining = randint(MIN_INDIVIDUAL_BAGGING_TIME, MAX_INDIVIDUAL_BAGGING_TIME) * randint(MIN_INDIVIDUAL_BAGS, MAX_INDIVIDUAL_BAGS)
         self.boarding_time = 0
 
+        # further away means more 
         self.sitdown_time = 1 + self.target[1] % 3
+
+        if self.target[1] < 3: # left side gaming
+            self.sitdown_time = 4 - self.sitdown_time
 
     def __repr__(self) -> str:
         return f'passenger{self.target} {"bagging" if self.is_bagging else "moving"}'
@@ -28,6 +40,12 @@ class Passenger:
 targets_pool = []
 middle = {}
 seats = {}
+
+def partial_shuffle(l, factor=5):
+    n = len(l)
+    for _ in range(factor):
+        a, b = randrange(n), randrange(n)
+        l[b], l[a] = l[a], l[b]
 
 def prepare(): 
     global targets_pool, middle, seats
@@ -44,6 +62,11 @@ def prepare():
     # targets_pool = list(reversed(targets_pool))
 
     shuffle(targets_pool)
+
+    # passengers not following instructions
+    swaps = int(len(targets_pool) * (PERCENTAGE_OF_PASSENGERS_NOT_FOLLOWING_INSTRUCTIONS / 100))
+    # print(f'swapping {swaps} positions due to {PERCENTAGE_OF_PASSENGERS_NOT_FOLLOWING_INSTRUCTIONS}% not following instructions')
+    partial_shuffle(targets_pool, swaps)
 
     _outside = {
         i: Passenger(
@@ -167,7 +190,7 @@ for sim_id in range(SIM_COUNT):
     # print(f'simulation #{sim_id} commencing...')
     btime = run()
     average_boarding_times.append(btime)
-    print(f'simulation #{sim_id} done - average boarding time: {btime}')
+    print(f'[{(sim_id+1)/SIM_COUNT*100:.2f}%] simulation {sim_id+1}/{SIM_COUNT} done - average boarding time: {btime}')
 
     total_sims += 1
 
@@ -177,21 +200,7 @@ print('\n--- numbers ---')
 
 print()
 
-print('boarding times mean:', statistics.mean(average_boarding_times))
-print('boarding times median:', statistics.median(average_boarding_times))
-print('boarding times mode:', statistics.mode(average_boarding_times))
-
-print()
-
-print('boarding times min:', min(average_boarding_times))
-print('boarding times max:', max(average_boarding_times))
-print('boarding times range:', max(average_boarding_times) - min(average_boarding_times))
-
-print()
-
-print('boarding times stdev:', statistics.stdev(average_boarding_times))
-print('boarding times 5th percentile: ', np.percentile(average_boarding_times, 5))
-print('boarding times 95th percentile: ', np.percentile(average_boarding_times, 95))
+log = 'boarding times mean:' + str(statistics.mean(average_boarding_times)) + '\nboarding times median:' + str(statistics.median(average_boarding_times)) + '\nboarding times mode:' + str(statistics.mode(average_boarding_times)) + '\n\nboarding times min:' + str(min(average_boarding_times)) + '\nboarding times max:' + str(max(average_boarding_times)) + '\nboarding times range:' + str(max(average_boarding_times) - min(average_boarding_times)) + '\n\nboarding times stdev:' + str(statistics.stdev(average_boarding_times)) + '\nboarding times 5th percentile: ' + str(np.percentile(average_boarding_times, 5)) + '\nboarding times 95th percentile: ' + str(np.percentile(average_boarding_times, 95))
 
 plt.rcParams.update({'figure.figsize':(7,5), 'figure.dpi':100})
 
@@ -200,12 +209,21 @@ plt.hist(average_boarding_times, bins=50)
 plt.gca().set(title=f'Average boarding time of {passenger_count} passengers (simulated {total_sims} times)', ylabel='Frequency')
 plt.xlabel('Boarding Time (s)')
 
-print('writing file...')
 
-with open(f'data_{SIM_COUNT}_{datetime.now()}.csv', 'w+') as f:
+now = datetime.now()
+
+print('writing data...')
+with open(f'data_{SIM_COUNT}_{now}.csv', 'w+') as f:
     f.write('average_boarding_time\n')
     f.write('\n'.join(
         [str(t) for t in average_boarding_times]
     ))
+
+print('writing histogram...')
+plt.savefig(f'fig_{SIM_COUNT}_{now}.png')
+
+print('writing log...')
+with open(f'log_{SIM_COUNT}_{now}.log', 'w+') as f:
+    f.write(log)
 
 plt.show()
