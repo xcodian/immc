@@ -1,6 +1,8 @@
 from datetime import datetime
 from random import randint, shuffle, randrange
 
+from itertools import cycle
+
 import statistics
 
 import numpy as np
@@ -14,8 +16,8 @@ SIM_COUNT = 1000 # reruns the plane simulation n times
 MIN_INDIVIDUAL_BAGGING_TIME = 5
 MAX_INDIVIDUAL_BAGGING_TIME = 20
 
-MIN_INDIVIDUAL_BAGS = 1
-MAX_INDIVIDUAL_BAGS = 3
+MIN_INDIVIDUAL_BAGS = 3
+MAX_INDIVIDUAL_BAGS = 4
 
 PERCENTAGE_OF_PASSENGERS_NOT_FOLLOWING_INSTRUCTIONS = 5
 
@@ -53,15 +55,19 @@ def prepare():
     targets_pool = []
     middle = {}
     seats = {}
-    
-    # make random target pool
-    for r in range(ROW_COUNT):
-        for s in range(SEATS_PER_ROW*2):
+
+
+
+    # ------- random allocation  -------
+    # for r in range(ROW_COUNT):
+    #     for s in range(SEATS_PER_ROW*2):
+    #         targets_pool.append([r+passenger_count, s])
+    # shuffle(targets_pool)
+
+    # ------- outer seats to inner --------
+    for s in [0, 5,  1, 4,  2, 3]:
+        for r in range(ROW_COUNT):
             targets_pool.append([r+passenger_count, s])
-
-    # targets_pool = list(reversed(targets_pool))
-
-    shuffle(targets_pool)
 
     # passengers not following instructions
     swaps = int(len(targets_pool) * (PERCENTAGE_OF_PASSENGERS_NOT_FOLLOWING_INSTRUCTIONS / 100))
